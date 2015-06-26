@@ -235,9 +235,9 @@ def _boot(cs, args, reservation_id=None, min_count=None, max_count=None):
     for nic_str in args.nics:
         err_msg = (_("Invalid nic argument '%s'. Nic arguments must be of "
                    "the form --nic <net-id=net-uuid,v4-fixed-ip=ip-addr,"
-                   "port-id=port-uuid>, with at minimum net-id or port-id "
-                   "specified.") % nic_str)
-        nic_info = {"net-id": "", "v4-fixed-ip": "", "port-id": ""}
+                   "port-id=port-uuid,subnet-id=subnet-uuid>, with at minimum net-id or port-id "
+                   "or subnet-id specified.") % nic_str)
+        nic_info = {"net-id": "", "v4-fixed-ip": "", "port-id": "", "subnet-id":""}
 
         for kv_str in nic_str.split(","):
             try:
@@ -250,7 +250,7 @@ def _boot(cs, args, reservation_id=None, min_count=None, max_count=None):
             else:
                 raise exceptions.CommandError(err_msg)
 
-        if not nic_info['net-id'] and not nic_info['port-id']:
+        if not nic_info['net-id'] and not nic_info['port-id'] and not nic_info['subnet-id']:
             raise exceptions.CommandError(err_msg)
 
         nics.append(nic_info)
@@ -402,7 +402,7 @@ def _boot(cs, args, reservation_id=None, min_count=None, max_count=None):
         help=_("Send arbitrary key/value pairs to the scheduler for custom "
                "use."))
 @utils.arg('--nic',
-     metavar="<net-id=net-uuid,v4-fixed-ip=ip-addr,port-id=port-uuid>",
+     metavar="<net-id=net-uuid,v4-fixed-ip=ip-addr,port-id=port-uuid,subnet-id=subnet-uuid>",
      action='append',
      dest='nics',
      default=[],
@@ -412,6 +412,7 @@ def _boot(cs, args, reservation_id=None, min_count=None, max_count=None):
            "(required if no port-id), "
            "v4-fixed-ip: IPv4 fixed address for NIC (optional), "
            "port-id: attach NIC to port with this UUID "
+           "subnet-id: attach NIC from this subnet UUID "
            "(required if no net-id)"))
 @utils.arg('--config-drive',
      metavar="<value>",
@@ -3430,13 +3431,15 @@ def do_interface_list(cs, args):
            dest="port_id")
 @utils.arg('--net-id', metavar='<net_id>', help=_('Network ID'),
            default=None, dest="net_id")
+@utils.arg('--subnet-id', metavar='<subnet_id>', help=_('Subnet ID'),
+           default=None, dest="subnet_id")
 @utils.arg('--fixed-ip', metavar='<fixed_ip>', help=_('Requested fixed IP.'),
            default=None, dest="fixed_ip")
 def do_interface_attach(cs, args):
     """Attach a network interface to a server."""
     server = _find_server(cs, args.server)
 
-    res = server.interface_attach(args.port_id, args.net_id, args.fixed_ip)
+    res = server.interface_attach(args.port_id, args.net_id, args.fixed_ip, args.subnet_id)
     if type(res) is dict:
         utils.print_dict(res)
 

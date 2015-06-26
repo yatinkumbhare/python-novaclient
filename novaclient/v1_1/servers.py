@@ -380,11 +380,11 @@ class Server(base.Resource):
         """
         return self.manager.interface_list(self)
 
-    def interface_attach(self, port_id, net_id, fixed_ip):
+    def interface_attach(self, port_id, net_id, fixed_ip, subnet_id):
         """
         Attach a network interface to an instance.
         """
-        return self.manager.interface_attach(self, port_id, net_id, fixed_ip)
+        return self.manager.interface_attach(self, port_id, net_id, fixed_ip, subnet_id)
 
     def interface_detach(self, port_id):
         """
@@ -520,6 +520,8 @@ class ServerManager(base.BootingManagerWithFind):
                 # if value is empty string, do not send value in body
                 if nic_info.get('net-id'):
                     net_data['uuid'] = nic_info['net-id']
+                if nic_info.get('subnet-id'):
+                    net_data['subnet'] = nic_info['subnet-id']
                 if nic_info.get('v4-fixed-ip'):
                     net_data['fixed_ip'] = nic_info['v4-fixed-ip']
                 if nic_info.get('port-id'):
@@ -1139,7 +1141,7 @@ class ServerManager(base.BootingManagerWithFind):
         return self._list('/servers/%s/os-interface' % base.getid(server),
                           'interfaceAttachments')
 
-    def interface_attach(self, server, port_id, net_id, fixed_ip):
+    def interface_attach(self, server, port_id, net_id, fixed_ip, subnet_id):
         """
         Attach a network_interface to an instance.
 
@@ -1152,6 +1154,8 @@ class ServerManager(base.BootingManagerWithFind):
             body['interfaceAttachment']['port_id'] = port_id
         if net_id:
             body['interfaceAttachment']['net_id'] = net_id
+        if subnet_id:
+            body['interfaceAttachment']['subnet_id'] = subnet_id
         if fixed_ip:
             body['interfaceAttachment']['fixed_ips'] = [
                 {'ip_address': fixed_ip}]
