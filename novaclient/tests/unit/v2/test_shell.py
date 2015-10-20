@@ -482,6 +482,26 @@ class ShellTest(utils.TestCase):
             },
         )
 
+    def test_boot_nics_by_subnet_id(self):
+        cmd = ('boot --image 1 --flavor 1 '
+               '--nic subnet-id=a=c,v4-fixed-ip=10.0.0.1 some-server')
+        self.run_command(cmd)
+        self.assert_called_anytime(
+            'POST', '/servers',
+            {
+                'server': {
+                    'flavorRef': '1',
+                    'name': 'some-server',
+                    'imageRef': '1',
+                    'min_count': 1,
+                    'max_count': 1,
+                    'networks': [
+                        {'subnet': 'a=c', 'fixed_ip': '10.0.0.1'},
+                    ],
+                },
+            },
+        )
+
     def test_boot_nics_ipv6(self):
         cmd = ('boot --image 1 --flavor 1 '
                '--nic net-id=a=c,v6-fixed-ip=2001:db9:0:1::10 some-server')
@@ -511,6 +531,11 @@ class ShellTest(utils.TestCase):
     def test_boot_nics_no_value(self):
         cmd = ('boot --image 1 --flavor 1 '
                '--nic net-id some-server')
+        self.assertRaises(exceptions.CommandError, self.run_command, cmd)
+
+    def tets_boot_nics_no_subnet_value(self):
+        cmd = ('boot --image 1 --flavor 1 '
+               '--nic subnet-id some-server')
         self.assertRaises(exceptions.CommandError, self.run_command, cmd)
 
     def test_boot_nics_random_key(self):

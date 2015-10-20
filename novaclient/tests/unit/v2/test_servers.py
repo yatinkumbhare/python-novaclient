@@ -130,6 +130,31 @@ class ServersTest(utils.FixturedTestCase):
 
         test_create_server_from_volume()
 
+    def test_create_server_with_nics(self):
+        old_boot = self.cs.servers._boot
+        nics = [{'subnet-id': '11111111-1111-1111-1111-111111111111',
+                 'v4-fixed-ip': '10.0.0.7'}]
+
+        def wrapped_boot(url, key, *boot_args, **boot_kwargs):
+            self.assertEqual(boot_kwargs['nics'], nics)
+            return old_boot(url, key, *boot_args, **boot_kwargs)
+
+        @mock.patch.object(self.cs.servers, '_boot', wrapped_boot)
+        def test_create_server_nics():
+            s = self.cs.servers.create(
+                name="My server",
+                image=1,
+                flavor=1,
+                meta={'foo': 'bar'},
+                userdata="hello moto",
+                key_name="fakekey",
+                nics=nics
+            )
+            self.assert_called('POST', '/servers')
+            self.assertIsInstance(s, servers.Server)
+
+        test_create_server_nics()
+
     def test_create_server_boot_with_nics_ipv6(self):
         old_boot = self.cs.servers._boot
         nics = [{'net-id': '11111111-1111-1111-1111-111111111111',
@@ -695,7 +720,7 @@ class ServersTest(utils.FixturedTestCase):
 
     def test_interface_attach(self):
         s = self.cs.servers.get(1234)
-        s.interface_attach(None, None, None)
+        s.interface_attach(None, None, None, None)
         self.assert_called('POST', '/servers/1234/os-interface')
 
     def test_interface_detach(self):

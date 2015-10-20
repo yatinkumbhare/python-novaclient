@@ -253,10 +253,10 @@ def _boot(cs, args):
     for nic_str in args.nics:
         err_msg = (_("Invalid nic argument '%s'. Nic arguments must be of "
                      "the form --nic <net-id=net-uuid,v4-fixed-ip=ip-addr,"
-                     "v6-fixed-ip=ip-addr,port-id=port-uuid>, with at minimum "
-                     "net-id or port-id (but not both) specified.") % nic_str)
+                     "v6-fixed-ip=ip-addr,port-id=port-uuid,subnet-id=subnet-uuid>, with at minimum "
+                     "net-id, port-id or subnet-id  (but not all) specified.") % nic_str)
         nic_info = {"net-id": "", "v4-fixed-ip": "", "v6-fixed-ip": "",
-                    "port-id": ""}
+                    "port-id": "", "subnet-id": ""}
 
         for kv_str in nic_str.split(","):
             try:
@@ -269,7 +269,8 @@ def _boot(cs, args):
             else:
                 raise exceptions.CommandError(err_msg)
 
-        if bool(nic_info['net-id']) == bool(nic_info['port-id']):
+        condition = sum([bool(nic_info['net-id']), bool(nic_info['port-id']), bool(nic_info['subnet-id'])])
+        if condition > 1 or condition == 0:
             raise exceptions.CommandError(err_msg)
 
         nics.append(nic_info)
@@ -466,18 +467,19 @@ def _boot(cs, args):
 @cliutils.arg(
     '--nic',
     metavar="<net-id=net-uuid,v4-fixed-ip=ip-addr,v6-fixed-ip=ip-addr,"
-            "port-id=port-uuid>",
+            "port-id=port-uuid,subnet-id=subnet-uuid>",
     action='append',
     dest='nics',
     default=[],
     help=_("Create a NIC on the server. "
            "Specify option multiple times to create multiple NICs. "
            "net-id: attach NIC to network with this UUID "
-           "(either port-id or net-id must be provided), "
+           "(either port-id, net-id or subnet-id must be provided), "
            "v4-fixed-ip: IPv4 fixed address for NIC (optional), "
            "v6-fixed-ip: IPv6 fixed address for NIC (optional), "
            "port-id: attach NIC to port with this UUID "
-           "(either port-id or net-id must be provided)."))
+           "subnet-id: attach NIC to subnet with this UUID "
+           "(either port-id, net-id or subnet-id must be provided)."))
 @cliutils.arg(
     '--config-drive',
     metavar="<value>",
@@ -4228,6 +4230,11 @@ def do_interface_list(cs, args):
     help=_('Network ID'),
     default=None, dest="net_id")
 @cliutils.arg(
+    '--subnet-id',
+    metavar='<subnet_id>',
+    help=_('Subnet ID'),
+    default=None, dest="subnet_id")
+@cliutils.arg(
     '--fixed-ip',
     metavar='<fixed_ip>',
     help=_('Requested fixed IP.'),
@@ -4236,7 +4243,7 @@ def do_interface_attach(cs, args):
     """Attach a network interface to a server."""
     server = _find_server(cs, args.server)
 
-    res = server.interface_attach(args.port_id, args.net_id, args.fixed_ip)
+    res = server.interface_attach(args.port_id, args.net_id, args.fixed_ip, args.subnet_id)
     if type(res) is dict:
         utils.print_dict(res)
 
